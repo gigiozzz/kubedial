@@ -1,0 +1,33 @@
+# Build stage
+FROM golang:1.24-alpine AS builder
+
+WORKDIR /workspace
+
+# Copy go workspace and module files
+COPY go.work go.work
+COPY common/go.mod common/go.sum* common/
+COPY kubecommander/go.mod kubecommander/go.sum* kubecommander/
+
+# Download dependencies
+RUN cd common && go mod download
+RUN cd kubecommander && go mod download
+
+# Copy source code
+COPY common/ common/
+COPY kubecommander/ kubecommander/
+
+# Build binary
+RUN cd kubecommander && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /kubecommander ./cmd/
+
+# Runtime stage
+FROM gcr.io/distroless/static:nonroot
+
+WORKDIR /
+
+COPY --from=builder /kubecommander /kubecommander
+
+USER 65532:65532
+
+EXPOSE 8080
+
+ENTRYPOINT ["/kubecommander"]

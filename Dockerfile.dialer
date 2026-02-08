@@ -1,0 +1,31 @@
+# Build stage
+FROM golang:1.24-alpine AS builder
+
+WORKDIR /workspace
+
+# Copy go workspace and module files
+COPY go.work go.work
+COPY common/go.mod common/go.sum* common/
+COPY kubedialer/go.mod kubedialer/go.sum* kubedialer/
+
+# Download dependencies
+RUN cd common && go mod download
+RUN cd kubedialer && go mod download
+
+# Copy source code
+COPY common/ common/
+COPY kubedialer/ kubedialer/
+
+# Build binary
+RUN cd kubedialer && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /kubedialer ./cmd/
+
+# Runtime stage
+FROM gcr.io/distroless/static:nonroot
+
+WORKDIR /
+
+COPY --from=builder /kubedialer /kubedialer
+
+USER 65532:65532
+
+ENTRYPOINT ["/kubedialer"]

@@ -1,0 +1,77 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: kubedialer
+  namespace: kubedial
+  labels:
+    app: kubedialer
+spec:
+  schedule: "*/1 * * * *"  # Every minute
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: kubedialer
+        spec:
+          serviceAccountName: kubedialer
+          restartPolicy: OnFailure
+          containers:
+            - name: kubedialer
+              image: ghcr.io/gigiozzz/kubedialer:latest
+              args:
+                - run
+              env:
+                - name: LOG_LEVEL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: kubedialer-config
+                      key: LOG_LEVEL
+                      optional: true
+                - name: COMMANDER_URL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: kubedialer-config
+                      key: COMMANDER_URL
+                - name: AGENT_NAME
+                  valueFrom:
+                    configMapKeyRef:
+                      name: kubedialer-config
+                      key: AGENT_NAME
+                - name: AGENT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: kubedialer-token
+                      key: token
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubedialer-config
+  namespace: kubedial
+data:
+  LOG_LEVEL: "info"
+  COMMANDER_URL: "http://kubecommander:8080"
+  AGENT_NAME: "kubedialer-agent"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kubedialer-token
+  namespace: kubedial
+  labels:
+    kubedial.io/type: auth
+    kubedial.io/role: agent
+type: Opaque
+stringData:
+  token: "changeme-agent-token"
