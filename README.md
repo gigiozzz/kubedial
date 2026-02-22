@@ -82,6 +82,10 @@ curl http://localhost:8080/api/v1/commands/<command-id> \
 | AGENT_TOKEN | Bearer token for authentication | - |
 | AGENT_NAME | Name of this agent | - |
 
+## Documentation
+
+- [Architecture](docs/architecture.md) — data storage, authentication, operational workflow, applyer pattern
+
 ## License
 
 Apache License 2.0
