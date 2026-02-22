@@ -1,0 +1,9 @@
+.git
+.github
+bin/
+*.md
+LICENSE
+Makefile
+go.work.sum
+TODO.md
+CLAUDE.md
