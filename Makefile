@@ -16,7 +16,7 @@ GOMOD := $(GOCMD) mod
 GOLINT := golangci-lint
 
 # envtest settings
-ENVTEST_K8S_VERSION := 1.32.0
+ENVTEST_K8S_VERSION := 1.33.0
 ENVTEST := $(shell pwd)/bin/setup-envtest
 ENVTEST_ASSETS_DIR := $(shell pwd)/bin/k8s
 
@@ -67,7 +67,7 @@ test-integration: envtest
 envtest:
 	@echo "Setting up envtest..."
 	@mkdir -p $(shell pwd)/bin
-	@test -s $(ENVTEST) || GOBIN=$(shell pwd)/bin go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+	@test -s $(ENVTEST) || GOBIN=$(shell pwd)/bin go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.21
 	@$(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(shell pwd)/bin -p path > /dev/null
 
 # Run linter
