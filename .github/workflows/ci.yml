@@ -17,10 +17,27 @@ jobs:
         with:
           go-version-file: go.work
           cache: true
+          cache-dependency-path: |
+            common/go.sum
+            kubecommander/go.sum
+            kubedialer/go.sum
 
-      - name: Run golangci-lint
+      - name: Lint common
         uses: golangci/golangci-lint-action@v6
         with:
+          working-directory: common
+          args: --timeout=5m
+
+      - name: Lint kubecommander
+        uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: kubecommander
+          args: --timeout=5m
+
+      - name: Lint kubedialer
+        uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: kubedialer
           args: --timeout=5m
 
   unit-tests:
@@ -33,6 +50,10 @@ jobs:
         with:
           go-version-file: go.work
           cache: true
+          cache-dependency-path: |
+            common/go.sum
+            kubecommander/go.sum
+            kubedialer/go.sum
 
       - name: Run unit tests
         run: make test-short
@@ -47,6 +68,10 @@ jobs:
         with:
           go-version-file: go.work
           cache: true
+          cache-dependency-path: |
+            common/go.sum
+            kubecommander/go.sum
+            kubedialer/go.sum
 
       - name: Run integration tests
         run: make test-integration
@@ -62,6 +87,10 @@ jobs:
         with:
           go-version-file: go.work
           cache: true
+          cache-dependency-path: |
+            common/go.sum
+            kubecommander/go.sum
+            kubedialer/go.sum
 
       - name: Build binaries
         run: make build
@@ -83,6 +112,10 @@ jobs:
         with:
           go-version-file: go.work
           cache: true
+          cache-dependency-path: |
+            common/go.sum
+            kubecommander/go.sum
+            kubedialer/go.sum
 
       - name: Build Docker images
         run: make docker-build

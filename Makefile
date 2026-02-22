@@ -52,17 +52,23 @@ clean: ## Remove build artifacts
 
 test: envtest ## Run all tests (unit + integration)
 	@echo "Running all tests..."
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(shell pwd)/bin -p path)" \
-		$(GOTEST) -v ./...
+	@ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(shell pwd)/bin -p path)"; \
+	(cd common && KUBEBUILDER_ASSETS="$$ASSETS" $(GOTEST) -v ./...) && \
+	(cd kubecommander && KUBEBUILDER_ASSETS="$$ASSETS" $(GOTEST) -v ./...) && \
+	(cd kubedialer && KUBEBUILDER_ASSETS="$$ASSETS" $(GOTEST) -v ./...)
 
 test-short: ## Run unit tests only (skip integration)
 	@echo "Running unit tests only..."
-	$(GOTEST) -v -short ./...
+	cd common && $(GOTEST) -v -short ./...
+	cd kubecommander && $(GOTEST) -v -short ./...
+	cd kubedialer && $(GOTEST) -v -short ./...
 
 test-integration: envtest ## Run integration tests only
 	@echo "Running integration tests..."
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(shell pwd)/bin -p path)" \
-		$(GOTEST) -v -run Integration ./...
+	@ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(shell pwd)/bin -p path)"; \
+	(cd common && KUBEBUILDER_ASSETS="$$ASSETS" $(GOTEST) -v -run Integration ./...) && \
+	(cd kubecommander && KUBEBUILDER_ASSETS="$$ASSETS" $(GOTEST) -v -run Integration ./...) && \
+	(cd kubedialer && KUBEBUILDER_ASSETS="$$ASSETS" $(GOTEST) -v -run Integration ./...)
 
 envtest:
 	@echo "Setting up envtest..."
@@ -100,7 +106,9 @@ docker-push-dialer:
 
 lint: ## Run golangci-lint
 	@echo "Running linter..."
-	$(GOLINT) run ./...
+	cd common && $(GOLINT) run ./...
+	cd kubecommander && $(GOLINT) run ./...
+	cd kubedialer && $(GOLINT) run ./...
 
 tidy: ## Tidy go.mod files
 	@echo "Tidying dependencies..."
