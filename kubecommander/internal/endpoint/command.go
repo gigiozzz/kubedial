@@ -113,7 +113,9 @@ func (h *CommandHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(created)
+	if err := json.NewEncoder(w).Encode(created); err != nil {
+		log.Error().Err(err).Msg("failed to encode create command response")
+	}
 }
 
 // List handles listing all commands
@@ -126,7 +128,9 @@ func (h *CommandHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(commands)
+	if err := json.NewEncoder(w).Encode(commands); err != nil {
+		log.Error().Err(err).Msg("failed to encode commands list response")
+	}
 }
 
 // GetPending handles getting pending commands for an agent
@@ -145,7 +149,9 @@ func (h *CommandHandler) GetPending(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(commands)
+	if err := json.NewEncoder(w).Encode(commands); err != nil {
+		log.Error().Err(err).Msg("failed to encode pending commands response")
+	}
 }
 
 // Get handles getting a single command with its result
@@ -173,7 +179,9 @@ func (h *CommandHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Error().Err(err).Msg("failed to encode get command response")
+	}
 }
 
 // ListFiles handles listing files in a command
@@ -188,7 +196,9 @@ func (h *CommandHandler) ListFiles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(files)
+	if err := json.NewEncoder(w).Encode(files); err != nil {
+		log.Error().Err(err).Msg("failed to encode files list response")
+	}
 }
 
 // GetFile handles downloading a specific file
@@ -210,7 +220,9 @@ func (h *CommandHandler) GetFile(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/x-yaml")
 	w.Header().Set("Content-Disposition", "attachment; filename="+filename)
-	w.Write(content)
+	if _, err := w.Write(content); err != nil {
+		log.Error().Err(err).Msg("failed to write file content")
+	}
 }
 
 // UpdateResult handles updating a command's result

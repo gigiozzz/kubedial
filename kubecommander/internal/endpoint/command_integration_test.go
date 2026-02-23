@@ -131,7 +131,7 @@ func TestIntegration_GetCommandFile(t *testing.T) {
 		WithHeader("Authorization", "Bearer "+validToken).
 		Expect().
 		Status(http.StatusOK).
-		ContentType("application/x-yaml").
+		HasContentType("application/x-yaml").
 		Body().IsEqual("apiVersion: apps/v1\nkind: Deployment")
 }
 

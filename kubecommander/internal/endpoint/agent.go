@@ -55,7 +55,9 @@ func (h *AgentHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		log.Error().Err(err).Msg("failed to encode register response")
+	}
 }
 
 // List handles listing all agents
@@ -68,7 +70,9 @@ func (h *AgentHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(agents)
+	if err := json.NewEncoder(w).Encode(agents); err != nil {
+		log.Error().Err(err).Msg("failed to encode agents response")
+	}
 }
 
 // Get handles getting a single agent
@@ -88,5 +92,7 @@ func (h *AgentHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(agent)
+	if err := json.NewEncoder(w).Encode(agent); err != nil {
+		log.Error().Err(err).Msg("failed to encode agent response")
+	}
 }
