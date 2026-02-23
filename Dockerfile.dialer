@@ -6,6 +6,7 @@ WORKDIR /workspace
 # Copy go workspace and module files
 COPY go.work go.work
 COPY common/go.mod common/go.sum* common/
+COPY kubecommander/go.mod kubecommander/go.sum* kubecommander/
 COPY kubedialer/go.mod kubedialer/go.sum* kubedialer/
 
 # Download dependencies
