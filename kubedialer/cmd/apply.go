@@ -25,7 +25,7 @@ var applyCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(applyCmd)
 	applyCmd.Flags().StringVar(&commandID, "command-id", "", "Command ID to apply")
-	applyCmd.MarkFlagRequired("command-id")
+	cobra.CheckErr(applyCmd.MarkFlagRequired("command-id"))
 }
 
 func applyExecute(cmd *cobra.Command, args []string) error {
