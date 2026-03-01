@@ -46,6 +46,16 @@ spec:
                     secretKeyRef:
                       name: kubedialer-token
                       key: token
+                - name: TLS_CA_FILE
+                  value: /etc/kubedial/tls/ca.crt
+                - name: TLS_CLIENT_CERT_FILE
+                  value: /etc/kubedial/tls/client.crt
+                - name: TLS_CLIENT_KEY_FILE
+                  value: /etc/kubedial/tls/client.key
+              volumeMounts:
+                - name: tls
+                  mountPath: /etc/kubedial/tls
+                  readOnly: true
               resources:
                 requests:
                   cpu: 100m
@@ -53,6 +63,10 @@ spec:
                 limits:
                   cpu: 500m
                   memory: 256Mi
+          volumes:
+            - name: tls
+              secret:
+                secretName: kubedialer-tls
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -61,7 +75,7 @@ metadata:
   namespace: kubedial
 data:
   LOG_LEVEL: "info"
-  COMMANDER_URL: "http://kubecommander:8080"
+  COMMANDER_URL: "https://kubecommander:8443"
   AGENT_NAME: "kubedialer-agent"
 ---
 apiVersion: v1

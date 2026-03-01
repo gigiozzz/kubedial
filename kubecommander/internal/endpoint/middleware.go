@@ -46,6 +46,19 @@ func AuthMiddleware(authService service.AuthService) func(http.Handler) http.Han
 	}
 }
 
+// RequireClientCertMiddleware enforces mTLS by requiring a verified client certificate
+func RequireClientCertMiddleware() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.TLS == nil || len(r.TLS.VerifiedChains) == 0 {
+				http.Error(w, "client certificate required", http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // GetRole extracts the role from the request context
 func GetRole(ctx context.Context) string {
 	if role, ok := ctx.Value(contextKeyRole).(string); ok {

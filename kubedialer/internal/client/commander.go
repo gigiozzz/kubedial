@@ -3,15 +3,25 @@ package client
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/gigiozzz/kubedial/common/models"
 )
+
+// TLSOptions holds TLS configuration for the commander client
+type TLSOptions struct {
+	CAFile     string
+	ClientCert string
+	ClientKey  string
+}
 
 // CommanderClient defines the interface for kubecommander API client
 type CommanderClient interface {
@@ -38,15 +48,45 @@ type commanderClient struct {
 	httpClient *http.Client
 }
 
-// NewCommanderClient creates a new CommanderClient
-func NewCommanderClient(baseURL, token string) CommanderClient {
+// NewCommanderClient creates a new CommanderClient.
+// When tlsOpts is non-nil and CAFile is set, mTLS transport is configured.
+func NewCommanderClient(baseURL, token string, tlsOpts *TLSOptions) (CommanderClient, error) {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+
+	if tlsOpts != nil && tlsOpts.CAFile != "" {
+		caPEM, err := os.ReadFile(tlsOpts.CAFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read CA cert: %w", err)
+		}
+		caPool := x509.NewCertPool()
+		if !caPool.AppendCertsFromPEM(caPEM) {
+			return nil, fmt.Errorf("failed to parse CA cert")
+		}
+
+		tlsCfg := &tls.Config{
+			RootCAs:    caPool,
+			MinVersion: tls.VersionTLS12,
+		}
+
+		if tlsOpts.ClientCert != "" && tlsOpts.ClientKey != "" {
+			cert, err := tls.LoadX509KeyPair(tlsOpts.ClientCert, tlsOpts.ClientKey)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load client cert/key: %w", err)
+			}
+			tlsCfg.Certificates = []tls.Certificate{cert}
+		}
+
+		transport.TLSClientConfig = tlsCfg
+	}
+
 	return &commanderClient{
 		baseURL: baseURL,
 		token:   token,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout:   30 * time.Second,
+			Transport: transport,
 		},
-	}
+	}, nil
 }
 
 func (c *commanderClient) doRequest(ctx context.Context, method, path string, body interface{}) (*http.Response, error) {
