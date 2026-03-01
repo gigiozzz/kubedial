@@ -20,13 +20,13 @@ func setupTestServer(t *testing.T, cmdSvc *mockCommandService, agentSvc *mockAge
 	agentHandler := NewAgentHandler(agentSvc)
 
 	router.Route("/api/v1", func(r Router) {
-		r.Use(AuthMiddleware(authSvc))
-
 		r.Route("/agents", func(r Router) {
+			r.Use(AuthMiddleware(authSvc))
 			agentHandler.RegisterRoutes(r)
 		})
 
 		r.Route("/commands", func(r Router) {
+			r.Use(AuthMiddleware(authSvc))
 			commandHandler.RegisterRoutes(r)
 		})
 	})

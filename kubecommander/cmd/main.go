@@ -45,7 +45,13 @@ func main() {
 	authService := service.NewAuthService(authRepo)
 
 	// Create and start server
-	srv := server.New(cfg.ServerPort, commandService, agentService, authService)
+	tlsOpts := server.TLSOptions{
+		Enabled:  cfg.TLSEnabled,
+		CertFile: cfg.TLSCertFile,
+		KeyFile:  cfg.TLSKeyFile,
+		CAFile:   cfg.TLSCAFile,
+	}
+	srv := server.New(cfg.ServerPort, commandService, agentService, authService, tlsOpts)
 
 	// Handle graceful shutdown
 	go func() {

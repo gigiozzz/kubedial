@@ -79,7 +79,62 @@ The `kubedialer-token` Secret holds the pre-configured agent token used by the C
 
 ---
 
-## 3. Authentication
+## 3. mTLS
+
+Kubedial uses a single TLS listener with `tls.VerifyClientCertIfGiven` and per-route middleware to enforce different authentication schemes per endpoint group.
+
+### Route-level enforcement
+
+| Route group | TLS enabled | TLS disabled (backward compat) |
+|-------------|-------------|-------------------------------|
+| `/api/v1/agents/*` | TLS + bearer token (`AuthMiddleware`) | Bearer token |
+| `/api/v1/commands/*` | mTLS only (`RequireClientCertMiddleware`, no bearer token needed) | Bearer token |
+
+### Certificate chain
+
+```
+CA (kubedial-ca)
+├── server.crt  -- kubecommander (SANs: kubecommander, kubecommander.kubedial.svc, ..., localhost)
+└── client.crt  -- kubedialer (extendedKeyUsage=clientAuth)
+```
+
+Generate certificates with:
+```bash
+make generate-certs
+make deploy-tls-secrets  # writes deploy/tls-secrets.yaml
+```
+
+### kubecommander configuration
+
+| Env var | Description | Default |
+|---------|-------------|---------|
+| `TLS_ENABLED` | Enable TLS listener | `false` |
+| `TLS_CERT_FILE` | Path to server certificate | `""` |
+| `TLS_KEY_FILE` | Path to server private key | `""` |
+| `TLS_CA_FILE` | Path to CA certificate (for client cert verification) | `""` |
+
+### kubedialer configuration
+
+| Env var | Description |
+|---------|-------------|
+| `TLS_CA_FILE` | Path to CA certificate for server verification |
+| `TLS_CLIENT_CERT_FILE` | Path to client certificate |
+| `TLS_CLIENT_KEY_FILE` | Path to client private key |
+
+These can also be set via CLI flags: `--tls-ca-file`, `--tls-client-cert-file`, `--tls-client-key-file`.
+
+### K8s Secrets
+
+| Secret | Contents | Used by |
+|--------|----------|---------|
+| `kubecommander-tls` | `ca.crt`, `server.crt`, `server.key` | kubecommander Deployment |
+| `kubedialer-tls` | `ca.crt`, `client.crt`, `client.key` | kubedialer CronJob |
+
+Both Secrets are mounted at `/etc/kubedial/tls/` in their respective pods.
+
+---
+
+## 4. Authentication
 
 ### Token generation
 
@@ -112,7 +167,7 @@ Every request passes through `AuthMiddleware`, which:
 
 ---
 
-## 4. Operational Workflow
+## 5. Operational Workflow
 
 ### Step-by-step flow
 
@@ -159,7 +214,7 @@ Status is updated by kubecommander via `UpdateStatus`, which patches both the `s
 
 ---
 
-## 5. Applyer Pattern
+## 6. Applyer Pattern
 
 kubedialer uses a dynamic Kubernetes client (not controller-runtime) to apply and delete manifests.
 
@@ -197,7 +252,7 @@ For namespaced resources, if the manifest does not specify a namespace and the c
 
 ---
 
-## 6. Project Structure
+## 7. Project Structure
 
 ```
 kubedial/

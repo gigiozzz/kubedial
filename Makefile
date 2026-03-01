@@ -2,6 +2,7 @@
 
 # Variables
 BINARY_DIR := bin
+CERTS_DIR := certs
 COMMANDER_BINARY := $(BINARY_DIR)/kubecommander
 DIALER_BINARY := $(BINARY_DIR)/kubedialer
 DOCKER_REGISTRY ?= docker.io/gigiozzz
@@ -20,7 +21,7 @@ ENVTEST_K8S_VERSION := 1.33.0
 ENVTEST := $(shell pwd)/bin/setup-envtest
 ENVTEST_ASSETS_DIR := $(shell pwd)/bin/k8s
 
-.PHONY: all build build-commander build-dialer clean test test-short test-integration lint docker-build docker-push envtest deps tidy help
+.PHONY: all build build-commander build-dialer clean test test-short test-integration lint docker-build docker-push envtest deps tidy help generate-certs deploy-tls-secrets
 
 .DEFAULT_GOAL := help
 
@@ -47,6 +48,7 @@ clean: ## Remove build artifacts
 	@echo "Cleaning..."
 	@rm -rf $(BINARY_DIR)
 	@rm -rf $(ENVTEST_ASSETS_DIR)
+	@rm -rf $(CERTS_DIR)
 
 ##@ Test
 
@@ -121,3 +123,43 @@ deps: ## Download dependencies
 	cd common && $(GOMOD) download
 	cd kubecommander && $(GOMOD) download
 	cd kubedialer && $(GOMOD) download
+
+##@ Security
+
+generate-certs: ## Generate CA, server, and client TLS certificates in certs/
+	@echo "Generating TLS certificates..."
+	@mkdir -p $(CERTS_DIR)
+	@# Generate CA key and self-signed cert (4096-bit RSA, 10 years)
+	openssl req -x509 -newkey rsa:4096 -keyout $(CERTS_DIR)/ca.key -out $(CERTS_DIR)/ca.crt \
+		-days 3650 -nodes -subj "/CN=kubedial-ca"
+	@# Generate server key and CSR
+	openssl req -newkey rsa:2048 -keyout $(CERTS_DIR)/server.key -out $(CERTS_DIR)/server.csr \
+		-nodes -subj "/CN=kubecommander"
+	@# Sign server cert with CA (1 year, SANs)
+	openssl x509 -req -in $(CERTS_DIR)/server.csr -CA $(CERTS_DIR)/ca.crt -CAkey $(CERTS_DIR)/ca.key \
+		-CAcreateserial -out $(CERTS_DIR)/server.crt -days 365 \
+		-extfile <(printf "subjectAltName=DNS:kubecommander,DNS:kubecommander.kubedial.svc,DNS:kubecommander.kubedial.svc.cluster.local,DNS:localhost,IP:127.0.0.1")
+	@# Generate client key and CSR
+	openssl req -newkey rsa:2048 -keyout $(CERTS_DIR)/client.key -out $(CERTS_DIR)/client.csr \
+		-nodes -subj "/CN=kubedialer"
+	@# Sign client cert with CA (1 year, clientAuth)
+	openssl x509 -req -in $(CERTS_DIR)/client.csr -CA $(CERTS_DIR)/ca.crt -CAkey $(CERTS_DIR)/ca.key \
+		-CAcreateserial -out $(CERTS_DIR)/client.crt -days 365 \
+		-extfile <(printf "extendedKeyUsage=clientAuth")
+	@# Cleanup CSR and SRL files
+	@rm -f $(CERTS_DIR)/*.csr $(CERTS_DIR)/*.srl
+	@echo "Certificates generated in $(CERTS_DIR)/"
+
+deploy-tls-secrets: ## Generate deploy/tls-secrets.yaml from certs/ (requires generate-certs first)
+	@echo "Generating TLS secrets manifest..."
+	kubectl create secret generic kubecommander-tls \
+		--from-file=ca.crt=$(CERTS_DIR)/ca.crt \
+		--from-file=server.crt=$(CERTS_DIR)/server.crt \
+		--from-file=server.key=$(CERTS_DIR)/server.key \
+		--dry-run=client -o yaml > deploy/tls-secrets.yaml
+	kubectl create secret generic kubedialer-tls \
+		--from-file=ca.crt=$(CERTS_DIR)/ca.crt \
+		--from-file=client.crt=$(CERTS_DIR)/client.crt \
+		--from-file=client.key=$(CERTS_DIR)/client.key \
+		--dry-run=client -o yaml >> deploy/tls-secrets.yaml
+	@echo "TLS secrets manifest written to deploy/tls-secrets.yaml"

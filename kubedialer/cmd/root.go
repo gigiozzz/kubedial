@@ -9,10 +9,13 @@ import (
 )
 
 var (
-	commanderURL string
-	agentToken   string
-	agentName    string
-	clusterName  string
+	commanderURL      string
+	agentToken        string
+	agentName         string
+	clusterName       string
+	tlsCAFile         string
+	tlsClientCertFile string
+	tlsClientKeyFile  string
 )
 
 // rootCmd represents the base command
@@ -40,4 +43,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&agentToken, "agent-token", "", "Bearer token for authentication")
 	rootCmd.PersistentFlags().StringVar(&agentName, "agent-name", "", "Name of this agent")
 	rootCmd.PersistentFlags().StringVar(&clusterName, "cluster-name", "", "Name of the Kubernetes cluster")
+	rootCmd.PersistentFlags().StringVar(&tlsCAFile, "tls-ca-file", "", "Path to CA certificate for TLS verification")
+	rootCmd.PersistentFlags().StringVar(&tlsClientCertFile, "tls-client-cert-file", "", "Path to client certificate for mTLS")
+	rootCmd.PersistentFlags().StringVar(&tlsClientKeyFile, "tls-client-key-file", "", "Path to client key for mTLS")
 }

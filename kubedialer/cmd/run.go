@@ -41,6 +41,15 @@ func runExecute(cmd *cobra.Command, args []string) error {
 	if clusterName == "" {
 		clusterName = os.Getenv("CLUSTER_NAME")
 	}
+	if tlsCAFile == "" {
+		tlsCAFile = os.Getenv("TLS_CA_FILE")
+	}
+	if tlsClientCertFile == "" {
+		tlsClientCertFile = os.Getenv("TLS_CLIENT_CERT_FILE")
+	}
+	if tlsClientKeyFile == "" {
+		tlsClientKeyFile = os.Getenv("TLS_CLIENT_KEY_FILE")
+	}
 
 	if commanderURL == "" {
 		log.Fatal().Msg("commander-url is required")
@@ -57,8 +66,21 @@ func runExecute(cmd *cobra.Command, args []string) error {
 		Str("agent-name", agentName).
 		Msg("starting kubedialer run")
 
+	// Build TLS options if CA file is configured
+	var tlsOpts *client.TLSOptions
+	if tlsCAFile != "" {
+		tlsOpts = &client.TLSOptions{
+			CAFile:     tlsCAFile,
+			ClientCert: tlsClientCertFile,
+			ClientKey:  tlsClientKeyFile,
+		}
+	}
+
 	// Create commander client
-	commanderClient := client.NewCommanderClient(commanderURL, agentToken)
+	commanderClient, err := client.NewCommanderClient(commanderURL, agentToken, tlsOpts)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create commander client")
+	}
 
 	// Register agent
 	agent := &models.Agent{
